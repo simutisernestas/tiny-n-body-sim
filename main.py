@@ -1,4 +1,5 @@
 
+import random
 import imageio
 import numpy as np
 import numpy.linalg as LA
@@ -16,11 +17,14 @@ class Body:
                            [vy]], dtype='float64')
 
 
-BIGGEST = 9e7
-bodies = [Body(0, 0, 5e6, -19, -52), Body(0, 1, 7e6, 60, -30),
-          Body(1, 1, BIGGEST, -0.1, -0.2), Body(2, 2, 2e7, 10, -30)]
-G = 0.0000031
-dt = 0.003
+GIF = True
+bodies = [
+    Body(-0.97000436, 0.24308753, 1, 0.4662036850, 0.4323657300),
+    Body(0, 0, 1, -0.93240737, -0.8647314),
+    Body(0.97000436, -0.24308753, 1, 0.4662036850, 0.4323657300),
+]
+G = 1
+dt = 0.01
 
 
 def step():
@@ -32,35 +36,42 @@ def step():
             if body1 == body2:
                 continue
             body1.a += (G * body2.m * (body2.p - body1.p)) / \
-                LA.norm(body2.p - body1.p)
+                LA.norm(body2.p - body1.p) ** 3
 
         body1.v += body1.a * dt
         body1.p += body1.v * dt
 
 
-s = [b.m/BIGGEST*1e3 for b in bodies]
-c = [0, 1, 2, 3]
+def r():
+    return random.randint(0, 255)
 
+
+c = ['#%02X%02X%02X' % (r(), r(), r()) for _ in bodies]
+s = [b.m*1e2 for b in bodies]
 filenames = []
 for i in range(500):
-    filename = f'{i}.png'
-    filenames.append(filename)
+    if GIF:
+        filename = f'{i}.png'
+        filenames.append(filename)
     step()
     plt.scatter([b.p[0] for b in bodies], [b.p[1] for b in bodies],
-                s=s, color=['#FF00E6', '#00FFFF', '#0202D5', '#CC0000'])
-    plt.savefig(filename)
-    plt.pause(0.01)
+                s=s, color=c)
+    if GIF:
+        plt.savefig(filename)
+    plt.pause(0.001)
     plt.clf()
-    delta_x = max([abs(b.p[0][0] - bodies[2].p[0][0]) for b in bodies]) + 1.5
-    delta_y = max([abs(b.p[1][0] - bodies[2].p[1][0]) for b in bodies]) + 1.5
-    plt.axis([bodies[2].p[0][0] - delta_x, bodies[2].p[0][0] + delta_x,
-              bodies[2].p[1][0] - delta_y, bodies[2].p[1][0] + delta_y])
+    # delta_x = max([abs(b.p[0][0] - bodies[2].p[0][0]) for b in bodies]) + 1.5
+    # delta_y = max([abs(b.p[1][0] - bodies[2].p[1][0]) for b in bodies]) + 1.5
+    # plt.axis([bodies[2].p[0][0] - delta_x, bodies[2].p[0][0] + delta_x,
+    #           bodies[2].p[1][0] - delta_y, bodies[2].p[1][0] + delta_y])
+    plt.axis([-2, 2, -2, 2])
     plt.grid(True, alpha=0.1)
 
-with imageio.get_writer('mygif.gif', mode='I') as writer:
-    for filename in filenames:
-        image = imageio.imread(filename)
-        writer.append_data(image)
+if GIF:
+    with imageio.get_writer('mygif.gif', mode='I') as writer:
+        for filename in filenames:
+            image = imageio.imread(filename)
+            writer.append_data(image)
 
-for filename in set(filenames):
-    os.remove(filename)
+    for filename in set(filenames):
+        os.remove(filename)
